@@ -619,10 +619,26 @@
      }
    });
    
-   document.getElementById("btn-print").addEventListener("click", () => {
-     updatePrintPageSize();
-     window.print();
-   });
+  document.getElementById("btn-print").addEventListener("click", () => {
+    updatePrintPageSize();
+
+    const container = document.getElementById("pages-container");
+    const savedTransform = container.style.transform;
+    const savedOrigin = container.style.transformOrigin;
+    const savedMargin = container.style.marginBottom;
+    container.style.transform = "none";
+    container.style.transformOrigin = "";
+    container.style.marginBottom = "";
+
+    window.onafterprint = () => {
+      container.style.transform = savedTransform;
+      container.style.transformOrigin = savedOrigin;
+      container.style.marginBottom = savedMargin;
+      window.onafterprint = null;
+    };
+
+    window.print();
+  });
    
    document.getElementById("btn-pdf").addEventListener("click", async () => {
      const jsPDFLib = window.jspdf || window.jsPDF;
@@ -639,7 +655,7 @@
 
      const btn = document.getElementById("btn-pdf");
      btn.disabled = true;
-     btn.textContent = "⏳ Generating...";
+     btn.textContent = "Generating...";
 
      const container = document.getElementById("pages-container");
      const savedTransform = container.style.transform;
@@ -685,7 +701,7 @@
        container.style.transformOrigin = savedOrigin;
        container.style.marginBottom = savedMargin;
        btn.disabled = false;
-       btn.textContent = "📄 PDF";
+       btn.textContent = "PDF";
      }
    });
    
