@@ -85,25 +85,28 @@
      },
    };
    
-   let allSpells = [];
-   let spellSources = {};
-   let booksMap = {};
-   let spellbook = [];
-   let currentTheme = "medieval";
+  let allSpells = [];
+  let allConditions = [];
+  let spellSources = {};
+  let booksMap = {};
+  let spellbook = [];
+  let currentTheme = "medieval";
    
    // ========================================
    // DATA LOADING
    // ========================================
    
    async function loadData() {
-     const [indexRes, booksRes, adventuresRes, sourcesRes] = await Promise.all([
-       fetch(`${DATA_BASE}/spells/index.json`).then(r => r.json()),
-       fetch(`${DATA_BASE}/books.json`).then(r => r.json()),
-       fetch(`${DATA_BASE}/adventures.json`).then(r => r.json()).catch(() => ({ adventure: [] })),
-       fetch(`${DATA_BASE}/spells/sources.json`).then(r => r.json()),
-     ]);
-   
-     spellSources = sourcesRes;
+    const [indexRes, booksRes, adventuresRes, sourcesRes, condRes] = await Promise.all([
+      fetch(`${DATA_BASE}/spells/index.json`).then(r => r.json()),
+      fetch(`${DATA_BASE}/books.json`).then(r => r.json()),
+      fetch(`${DATA_BASE}/adventures.json`).then(r => r.json()).catch(() => ({ adventure: [] })),
+      fetch(`${DATA_BASE}/spells/sources.json`).then(r => r.json()),
+      fetch(`${DATA_BASE}/conditionsdiseases.json`).then(r => r.json()).catch(() => ({ condition: [] })),
+    ]);
+  
+    spellSources = sourcesRes;
+    allConditions = condRes.condition || [];
    
      for (const book of booksRes.book) booksMap[book.source] = book.name;
      for (const adv of (adventuresRes.adventure || [])) {
@@ -165,27 +168,143 @@
      return base;
    }
    
-   function renderGrimoire() {
-     const container = document.getElementById("pages-container");
-     container.innerHTML = "";
-   
-     if (spellbook.length === 0) {
-       container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:4rem;font-size:1.2rem;font-family:var(--font-title);">Spellbook is empty. Go back and add spells.</p>';
-       return;
-     }
-   
-     const layout = getLayout();
-     const pages = chunkArray(spellbook, layout.perPage);
-   
-     for (let i = 0; i < pages.length; i++) {
-       const page = createPage(pages[i], i + 1, pages.length, layout);
-       container.appendChild(page);
-     }
+  function extractSpellbookConditions() {
+    const conditionNames = new Set();
+    const regex = /\{@condition ([^|}]+)\|?[^}]*\}/g;
 
-     requestAnimationFrame(() => {
-       requestAnimationFrame(() => shrinkOverflowingQuadrants());
-     });
-   }
+    for (const spell of spellbook) {
+      const text = JSON.stringify(spell.entries || []) + JSON.stringify(spell.entriesHigherLevel || []);
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        conditionNames.add(match[1]);
+      }
+    }
+
+    const results = [];
+    for (const name of [...conditionNames].sort()) {
+      const xphb = allConditions.find(c => c.name.toLowerCase() === name.toLowerCase() && c.source === "XPHB");
+      const fallback = allConditions.find(c => c.name.toLowerCase() === name.toLowerCase());
+      const cond = xphb || fallback;
+      if (cond) results.push(cond);
+    }
+    return results;
+  }
+
+  function buildConditionBlock(cond) {
+    const block = document.createElement("div");
+    block.className = "cond-block";
+
+    const name = document.createElement("div");
+    name.className = "cond-name";
+    name.textContent = cond.name;
+    block.appendChild(name);
+
+    const entries = document.createElement("div");
+    entries.className = "cond-entries";
+    entries.innerHTML = formatEntries(cond.entries || []);
+    block.appendChild(entries);
+
+    return block;
+  }
+
+  function createConditionsPage(isFirst) {
+    const page = document.createElement("div");
+    page.className = "grim-page layout-conditions";
+
+    if (isFirst) {
+      const title = document.createElement("div");
+      title.className = "cond-title";
+      title.textContent = "Conditions";
+      page.appendChild(title);
+    }
+
+    const body = document.createElement("div");
+    body.className = "cond-body";
+    page.appendChild(body);
+
+    const pn = document.createElement("div");
+    pn.className = "grim-page-number";
+    page.appendChild(pn);
+
+    return page;
+  }
+
+  function renderConditionsPages(container, conditions, startPageNum) {
+    const condPages = [];
+    const allBlocks = conditions.map(c => buildConditionBlock(c));
+
+    let currentPage = createConditionsPage(true);
+    container.appendChild(currentPage);
+    condPages.push(currentPage);
+
+    let body = currentPage.querySelector(".cond-body");
+    for (const block of allBlocks) {
+      body.appendChild(block);
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        for (let safety = 0; safety < 20; safety++) {
+          const page = condPages[condPages.length - 1];
+          const bd = page.querySelector(".cond-body");
+
+          if (bd.scrollHeight <= bd.clientHeight + 2) break;
+
+          const blocks = [...bd.querySelectorAll(".cond-block")];
+          if (blocks.length <= 1) break;
+
+          const newPage = createConditionsPage(false);
+          container.appendChild(newPage);
+          condPages.push(newPage);
+          const newBody = newPage.querySelector(".cond-body");
+
+          while (blocks.length > 1 && bd.scrollHeight > bd.clientHeight + 2) {
+            const last = blocks.pop();
+            newBody.insertBefore(last, newBody.firstChild);
+          }
+        }
+
+        const total = startPageNum + condPages.length - 1;
+        condPages.forEach((p, i) => {
+          p.querySelector(".grim-page-number").textContent =
+            `— ${startPageNum + i} / ${total} —`;
+        });
+
+        document.querySelectorAll(".grim-page:not(.layout-conditions) .grim-page-number").forEach(pn => {
+          const match = pn.textContent.match(/— (\d+)/);
+          if (match) pn.textContent = `— ${match[1]} / ${total} —`;
+        });
+      });
+    });
+  }
+
+  function renderGrimoire() {
+    const container = document.getElementById("pages-container");
+    container.innerHTML = "";
+  
+    if (spellbook.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:4rem;font-size:1.2rem;font-family:var(--font-title);">Spellbook is empty. Go back and add spells.</p>';
+      return;
+    }
+  
+    const layout = getLayout();
+    const pages = chunkArray(spellbook, layout.perPage);
+    const conditions = extractSpellbookConditions();
+    const spellPageCount = pages.length;
+  
+    for (let i = 0; i < pages.length; i++) {
+      const page = createPage(pages[i], i + 1, spellPageCount, layout);
+      container.appendChild(page);
+    }
+
+    if (conditions.length > 0) {
+      renderConditionsPages(container, conditions, spellPageCount + 1);
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => shrinkOverflowingQuadrants());
+    });
+  }
 
    function shrinkOverflowingQuadrants() {
      const MIN_SIZE = 5;
@@ -387,9 +506,18 @@
      const entries = formatEntries(spell.entries || []);
      const higher = spell.entriesHigherLevel ? formatEntries(spell.entriesHigherLevel) : "";
    
-     const tags = [];
-     if (spell.meta?.ritual) tags.push('<span class="sq-tag sq-tag-ritual">Ritual</span>');
-     if (spell.duration?.some(d => d.concentration)) tags.push('<span class="sq-tag sq-tag-conc">Concentration</span>');
+    const tags = [];
+    if (spell.meta?.ritual) tags.push('<span class="sq-tag sq-tag-ritual">Ritual</span>');
+    if (spell.duration?.some(d => d.concentration)) tags.push('<span class="sq-tag sq-tag-conc">Concentration</span>');
+
+    const condRegex = /\{@condition ([^|}]+)\|?[^}]*\}/g;
+    const spellText = JSON.stringify(spell.entries || []) + JSON.stringify(spell.entriesHigherLevel || []);
+    const condNames = new Set();
+    let cm;
+    while ((cm = condRegex.exec(spellText)) !== null) condNames.add(cm[1]);
+    for (const cn of [...condNames].sort()) {
+      tags.push(`<span class="sq-tag sq-tag-cond">${cn}</span>`);
+    }
 
      q.innerHTML = `
        <div class="sq-header">

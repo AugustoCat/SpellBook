@@ -329,6 +329,12 @@
     border: 1px solid rgba(128, 128, 128, 0.3);
   }
 
+  .sq-tag-cond {
+    background: rgba(160, 80, 80, 0.15);
+    color: #d08888;
+    border: 1px solid rgba(160, 80, 80, 0.35);
+  }
+
  .sq-subtitle {
     font-size: 9pt;
     font-style: italic;
@@ -867,6 +873,76 @@
   }
   
   /* ========================================
+     CONDITIONS REFERENCE PAGE
+     ======================================== */
+
+  .layout-conditions {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cond-title {
+    font-family: var(--font-title);
+    font-size: 16pt;
+    font-weight: 700;
+    color: var(--accent-color);
+    text-align: center;
+    padding-bottom: 3mm;
+    margin-bottom: 4mm;
+    border-bottom: 2px solid var(--separator-color);
+    flex-shrink: 0;
+  }
+
+  .cond-body {
+    flex: 1;
+    columns: 2;
+    column-gap: 8mm;
+    overflow: hidden;
+  }
+
+  .cond-block {
+    break-inside: avoid;
+    margin-bottom: 3mm;
+    padding-bottom: 2mm;
+    border-bottom: 1px dotted var(--border-color);
+  }
+
+  .cond-block:last-child {
+    border-bottom: none;
+  }
+
+  .cond-name {
+    font-family: var(--font-title);
+    font-size: 10pt;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin-bottom: 1mm;
+  }
+
+  .cond-entries {
+    font-size: 7.5pt;
+    line-height: 1.4;
+    color: var(--text-color);
+  }
+
+  .cond-entries p {
+    margin-bottom: 0.5mm;
+  }
+
+  .cond-entries strong {
+    color: var(--accent-color);
+  }
+
+  .cond-entries ul {
+    margin-left: 3mm;
+    margin-bottom: 0.5mm;
+  }
+
+  .cond-entries li {
+    margin-bottom: 0.3mm;
+  }
+
+  /* ========================================
      PAGE SIZE VARIANTS
      ======================================== */
   
@@ -878,13 +954,32 @@
   body.size-a5 {
     --page-w: 148mm;
     --page-h: 210mm;
-    --page-pad: 8mm;
+    --page-pad: 6mm;
   }
-  
-  body.size-a5 .sq-name { font-size: 9pt; }
-  body.size-a5 .sq-stats { font-size: 6pt; }
-  body.size-a5 .sq-stat-label { font-size: 5.5pt; }
-  body.size-a5 .sq-description { font-size: 6pt; }
+
+  body.size-a5 .grim-page {
+    grid-template-columns: 1fr 4mm 1fr;
+    grid-template-rows: 1fr 4mm 1fr;
+  }
+
+  body.size-a5 .spell-quadrant { padding: 1.5mm; }
+  body.size-a5 .sq-name { font-size: 8pt; margin-bottom: 0.5mm; }
+  body.size-a5 .sq-subtitle { font-size: 6pt; }
+  body.size-a5 .sq-header { margin-bottom: 1mm; padding-bottom: 1mm; }
+  body.size-a5 .sq-stats { font-size: 5.5pt; gap: 0.3mm 2mm; margin-bottom: 1mm; padding-bottom: 1mm; }
+  body.size-a5 .sq-stat-label { font-size: 5pt; }
+  body.size-a5 .sq-description { font-size: 5.5pt; line-height: 1.35; }
+  body.size-a5 .sq-description p { margin-bottom: 0.5mm; }
+  body.size-a5 .sq-higher-level { margin-top: 1mm; padding-top: 0.5mm; }
+  body.size-a5 .sq-higher-level-title { font-size: 6pt; }
+  body.size-a5 .sq-tags { gap: 2px; }
+  body.size-a5 .sq-tag { font-size: 5pt; padding: 0.3px 3px; }
+
+  body.size-a5 .cond-title { font-size: 12pt; margin-bottom: 2mm; padding-bottom: 2mm; }
+  body.size-a5 .cond-body { column-gap: 4mm; }
+  body.size-a5 .cond-block { margin-bottom: 2mm; padding-bottom: 1mm; }
+  body.size-a5 .cond-name { font-size: 7.5pt; }
+  body.size-a5 .cond-entries { font-size: 5.5pt; line-height: 1.35; }
   
   body.size-letter {
     --page-w: 215.9mm;

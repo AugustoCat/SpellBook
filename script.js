@@ -169,7 +169,7 @@ function initSourceFilter() {
     return nameA.localeCompare(nameB);
   });
 
-  activeFilters.sources = new Set(allSourceCodes);
+  activeFilters.sources = new Set(allSourceCodes.filter(s => s !== "PHB"));
   renderSourcesList();
   updateSourceButtonLabel();
 }
@@ -421,7 +421,7 @@ function clearFilters() {
     classes: new Set(),
     levels: new Set(),
     schools: new Set(),
-    sources: new Set(allSourceCodes),
+    sources: new Set(allSourceCodes.filter(s => s !== "PHB")),
   };
 
   for (const chip of $$(".chip.active")) chip.classList.remove("active");
@@ -475,6 +475,19 @@ function createSpellCard(spell, index) {
   const srcAbbr = sourceLabel(spell.source);
   const srcFull = booksMap[spell.source] || spell.source;
 
+  const tags = [];
+  if (spell.meta?.ritual) tags.push('<span class="spell-card-tag tag-ritual">Ritual</span>');
+  if (spell.duration?.some(d => d.concentration)) tags.push('<span class="spell-card-tag tag-conc">Conc.</span>');
+
+  const condRegex = /\{@condition ([^|}]+)\|?[^}]*\}/g;
+  const spellText = JSON.stringify(spell.entries || []) + JSON.stringify(spell.entriesHigherLevel || []);
+  const condNames = new Set();
+  let cm;
+  while ((cm = condRegex.exec(spellText)) !== null) condNames.add(cm[1]);
+  for (const cn of [...condNames].sort()) {
+    tags.push(`<span class="spell-card-tag tag-cond">${cn}</span>`);
+  }
+
   card.innerHTML = `
     <span class="spell-name">${spell.name}</span>
     <div class="spell-meta">
@@ -485,6 +498,7 @@ function createSpellCard(spell, index) {
       <span>·</span>
       <span title="${srcFull}">${srcAbbr}</span>
     </div>
+    ${tags.length ? `<div class="spell-card-tags">${tags.join("")}</div>` : ""}
     <button class="spell-add-btn ${inBook ? 'in-book' : ''}" title="${inBook ? 'In spellbook' : 'Add to spellbook'}">
       ${inBook ? '✓' : '+'}
     </button>
