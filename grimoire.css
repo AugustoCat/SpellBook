@@ -477,6 +477,7 @@
     box-shadow: 0 0 6px var(--accent-color);
   }
   .theme-arcano .sep-center {
+    border-radius: 50%;
     box-shadow: 0 0 12px var(--accent-color);
   }
   .theme-arcano .sq-name {
