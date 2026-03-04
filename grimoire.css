@@ -943,6 +943,129 @@
   }
 
   /* ========================================
+     SUMMONED CREATURES REFERENCE PAGE
+     ======================================== */
+
+  .layout-summons {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .summon-title {
+    font-family: var(--font-title);
+    font-size: 16pt;
+    font-weight: 700;
+    color: var(--accent-color);
+    text-align: center;
+    padding-bottom: 3mm;
+    margin-bottom: 4mm;
+    border-bottom: 2px solid var(--separator-color);
+    flex-shrink: 0;
+  }
+
+  .summon-body {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .stat-block {
+    break-inside: avoid;
+    margin-bottom: 4mm;
+    padding-bottom: 2mm;
+    font-size: 8.5pt;
+    line-height: 1.35;
+    color: var(--text-color);
+  }
+
+  .stat-block:last-child {
+    margin-bottom: 0;
+  }
+
+  .sb-bar {
+    height: 2px;
+    background: var(--accent-color);
+    margin: 1.5mm 0;
+    opacity: 0.6;
+  }
+
+  .sb-header {
+    text-align: center;
+  }
+
+  .sb-name {
+    font-family: var(--font-title);
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--accent-color);
+    line-height: 1.2;
+  }
+
+  .sb-meta {
+    font-size: 8.5pt;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  .sb-combat .sb-prop,
+  .sb-props .sb-prop {
+    margin-bottom: 0.5mm;
+    font-size: 8.5pt;
+  }
+
+  .sb-prop-label {
+    font-weight: 700;
+    color: var(--accent-color);
+  }
+
+  .sb-abilities {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    text-align: center;
+    gap: 1mm;
+    padding: 1mm 0;
+  }
+
+  .sb-ability-label {
+    font-size: 8pt;
+    font-weight: 700;
+    color: var(--accent-color);
+    text-transform: uppercase;
+  }
+
+  .sb-ability-score {
+    font-size: 8.5pt;
+  }
+
+  .sb-section {
+    margin-top: 1.5mm;
+  }
+
+  .sb-section-title {
+    font-family: var(--font-title);
+    font-size: 11pt;
+    font-weight: 700;
+    color: var(--accent-color);
+    border-bottom: 1px solid var(--accent-color);
+    margin-bottom: 1mm;
+    padding-bottom: 0.5mm;
+  }
+
+  .sb-entry {
+    margin-bottom: 1mm;
+    font-size: 9.5pt;
+  }
+
+  .sb-entry p {
+    display: inline;
+    margin: 0;
+  }
+
+  .sb-entry-name {
+    font-weight: 600;
+    font-style: italic;
+  }
+
+  /* ========================================
      PAGE SIZE VARIANTS
      ======================================== */
   
@@ -980,6 +1103,18 @@
   body.size-a5 .cond-block { margin-bottom: 2mm; padding-bottom: 1mm; }
   body.size-a5 .cond-name { font-size: 7.5pt; }
   body.size-a5 .cond-entries { font-size: 5.5pt; line-height: 1.35; }
+
+  body.size-a5 .summon-title { font-size: 12pt; margin-bottom: 2mm; padding-bottom: 2mm; }
+  body.size-a5 .stat-block { font-size: 7pt; margin-bottom: 3mm; }
+  body.size-a5 .sb-name { font-size: 10pt; }
+  body.size-a5 .sb-meta { font-size: 7pt; }
+  body.size-a5 .sb-combat .sb-prop,
+  body.size-a5 .sb-props .sb-prop { font-size: 7pt; }
+  body.size-a5 .sb-ability-label { font-size: 6.5pt; }
+  body.size-a5 .sb-ability-score { font-size: 7pt; }
+  body.size-a5 .sb-section-title { font-size: 9pt; }
+  body.size-a5 .sb-entry { font-size: 7.5pt; }
+  body.size-a5 .sb-bar { margin: 1mm 0; }
   
   body.size-letter {
     --page-w: 215.9mm;

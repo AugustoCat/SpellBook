@@ -85,28 +85,33 @@
      },
    };
    
-  let allSpells = [];
-  let allConditions = [];
-  let spellSources = {};
-  let booksMap = {};
-  let spellbook = [];
-  let currentTheme = "medieval";
+ let allSpells = [];
+ let allConditions = [];
+ let allSummons = [];
+ let spellSources = {};
+ let booksMap = {};
+ let spellbook = [];
+ let currentTheme = "medieval";
    
    // ========================================
    // DATA LOADING
    // ========================================
    
    async function loadData() {
-    const [indexRes, booksRes, adventuresRes, sourcesRes, condRes] = await Promise.all([
-      fetch(`${DATA_BASE}/spells/index.json`).then(r => r.json()),
-      fetch(`${DATA_BASE}/books.json`).then(r => r.json()),
-      fetch(`${DATA_BASE}/adventures.json`).then(r => r.json()).catch(() => ({ adventure: [] })),
-      fetch(`${DATA_BASE}/spells/sources.json`).then(r => r.json()),
-      fetch(`${DATA_BASE}/conditionsdiseases.json`).then(r => r.json()).catch(() => ({ condition: [] })),
-    ]);
-  
-    spellSources = sourcesRes;
-    allConditions = condRes.condition || [];
+  const bestiaryFiles = ["bestiary-xphb.json", "bestiary-tce.json", "bestiary-ftd.json", "bestiary-bmt.json"];
+
+  const [indexRes, booksRes, adventuresRes, sourcesRes, condRes, ...bestiaryResults] = await Promise.all([
+    fetch(`${DATA_BASE}/spells/index.json`).then(r => r.json()),
+    fetch(`${DATA_BASE}/books.json`).then(r => r.json()),
+    fetch(`${DATA_BASE}/adventures.json`).then(r => r.json()).catch(() => ({ adventure: [] })),
+    fetch(`${DATA_BASE}/spells/sources.json`).then(r => r.json()),
+    fetch(`${DATA_BASE}/conditionsdiseases.json`).then(r => r.json()).catch(() => ({ condition: [] })),
+    ...bestiaryFiles.map(f => fetch(`${DATA_BASE}/bestiary/${f}`).then(r => r.json()).catch(() => ({ monster: [] }))),
+  ]);
+
+  spellSources = sourcesRes;
+  allConditions = condRes.condition || [];
+  allSummons = bestiaryResults.flatMap(res => (res.monster || []).filter(m => m.summonedBySpell));
    
      for (const book of booksRes.book) booksMap[book.source] = book.name;
      for (const adv of (adventuresRes.adventure || [])) {
@@ -190,6 +195,169 @@
     return results;
   }
 
+  function extractSpellbookSummons() {
+    const results = [];
+    const seen = new Set();
+    for (const spell of spellbook) {
+      const key = `${spell.name}|${spell.source}`;
+      for (const m of allSummons) {
+        if (m.summonedBySpell === key && !seen.has(m.name)) {
+          seen.add(m.name);
+          results.push(m);
+        }
+      }
+    }
+    return results.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  const SIZE_MAP = { T: "Tiny", S: "Small", M: "Medium", L: "Large", H: "Huge", G: "Gargantuan" };
+  const ALIGN_MAP = { L: "Lawful", N: "Neutral", C: "Chaotic", G: "Good", E: "Evil", U: "Unaligned", A: "Any" };
+
+  function abilityMod(score) {
+    const mod = Math.floor((score - 10) / 2);
+    return mod >= 0 ? `+${mod}` : `${mod}`;
+  }
+
+  function formatCreatureAC(ac) {
+    if (!ac || !ac.length) return "—";
+    return ac.map(a => {
+      if (typeof a === "number") return String(a);
+      if (a.special) return a.special;
+      let s = String(a.ac || "");
+      if (a.from) s += ` (${a.from.join(", ")})`;
+      return s;
+    }).join(", ");
+  }
+
+  function formatCreatureHP(hp) {
+    if (!hp) return "—";
+    if (hp.special) return hp.special;
+    if (hp.average) return `${hp.average} (${hp.formula || ""})`;
+    return "—";
+  }
+
+  function formatCreatureSpeed(speed) {
+    if (!speed) return "—";
+    const parts = [];
+    for (const [type, val] of Object.entries(speed)) {
+      if (type === "canHover") continue;
+      const label = type === "walk" ? "" : `${type} `;
+      if (typeof val === "number") {
+        parts.push(`${label}${val} ft.`);
+      } else if (val && val.number) {
+        let s = `${label}${val.number} ft.`;
+        if (val.condition) s += ` ${val.condition}`;
+        parts.push(s);
+      }
+    }
+    if (speed.canHover && !parts.some(p => p.includes("hover"))) {
+      const fi = parts.findIndex(p => p.startsWith("fly") || p.includes("fly"));
+      if (fi >= 0) parts[fi] = parts[fi].replace("ft.", "ft. (hover)");
+    }
+    return parts.join(", ") || "—";
+  }
+
+  function formatDamageList(arr) {
+    if (!arr || !arr.length) return "";
+    return arr.map(item => {
+      if (typeof item === "string") return item;
+      if (item.resist) return item.resist.join(", ") + (item.note ? ` ${item.note}` : "");
+      if (item.immune) return item.immune.join(", ") + (item.note ? ` ${item.note}` : "");
+      return "";
+    }).filter(Boolean).join("; ");
+  }
+
+  function buildStatBlock(creature) {
+    const block = document.createElement("div");
+    block.className = "stat-block";
+
+    const sizes = (creature.size || []).map(s => SIZE_MAP[s] || s).join("/");
+    const typeName = typeof creature.type === "string" ? creature.type : (creature.type?.type || "");
+    const alignment = (creature.alignment || []).map(a => ALIGN_MAP[a] || a).join(" ");
+
+    const resistStr = formatDamageList(creature.resist);
+    const immuneStr = formatDamageList(creature.immune);
+    const condImmuneStr = (creature.conditionImmune || []).join(", ");
+
+    const senses = [...(creature.senses || [])];
+    if (creature.passive) senses.push(`passive Perception ${creature.passive}`);
+
+    const languages = (creature.languages || []).join(", ") || "—";
+    const pbStr = creature.pbNote || "—";
+
+    let propsHTML = "";
+    if (resistStr) propsHTML += `<div class="sb-prop"><span class="sb-prop-label">Resistances</span> ${resistStr}</div>`;
+    if (immuneStr) propsHTML += `<div class="sb-prop"><span class="sb-prop-label">Immunities</span> ${immuneStr}</div>`;
+    if (condImmuneStr) propsHTML += `<div class="sb-prop"><span class="sb-prop-label">Condition Immunities</span> ${condImmuneStr}</div>`;
+    propsHTML += `<div class="sb-prop"><span class="sb-prop-label">Senses</span> ${senses.join(", ") || "—"}</div>`;
+    propsHTML += `<div class="sb-prop"><span class="sb-prop-label">Languages</span> ${languages}</div>`;
+    propsHTML += `<div class="sb-prop"><span class="sb-prop-label">Proficiency Bonus</span> ${pbStr}</div>`;
+
+    const sectionsHTML = buildStatBlockSections(creature);
+
+    block.innerHTML = `
+      <div class="sb-bar"></div>
+      <div class="sb-header">
+        <div class="sb-name">${creature.name}</div>
+        <div class="sb-meta">${sizes} ${typeName}, ${alignment}</div>
+      </div>
+      <div class="sb-bar"></div>
+      <div class="sb-combat">
+        <div class="sb-prop"><span class="sb-prop-label">Armor Class</span> ${formatCreatureAC(creature.ac)}</div>
+        <div class="sb-prop"><span class="sb-prop-label">Hit Points</span> ${formatCreatureHP(creature.hp)}</div>
+        <div class="sb-prop"><span class="sb-prop-label">Speed</span> ${formatCreatureSpeed(creature.speed)}</div>
+      </div>
+      <div class="sb-bar"></div>
+      <div class="sb-abilities">
+        ${["str","dex","con","int","wis","cha"].map(a => `
+          <div class="sb-ability">
+            <div class="sb-ability-label">${a.toUpperCase()}</div>
+            <div class="sb-ability-score">${creature[a] || 10} (${abilityMod(creature[a] || 10)})</div>
+          </div>
+        `).join("")}
+      </div>
+      <div class="sb-bar"></div>
+      <div class="sb-props">${propsHTML}</div>
+      <div class="sb-bar"></div>
+      ${sectionsHTML}
+    `;
+
+    return block;
+  }
+
+  function buildStatBlockSections(creature) {
+    let html = "";
+    if (creature.trait && creature.trait.length) {
+      html += `<div class="sb-section">`;
+      html += creature.trait.map(t =>
+        `<div class="sb-entry"><span class="sb-entry-name">${t.name}.</span> ${formatEntries(t.entries || [])}</div>`
+      ).join("");
+      html += `</div>`;
+    }
+    if (creature.action && creature.action.length) {
+      html += `<div class="sb-section"><div class="sb-section-title">Actions</div>`;
+      html += creature.action.map(a =>
+        `<div class="sb-entry"><span class="sb-entry-name">${a.name}.</span> ${formatEntries(a.entries || [])}</div>`
+      ).join("");
+      html += `</div>`;
+    }
+    if (creature.bonus && creature.bonus.length) {
+      html += `<div class="sb-section"><div class="sb-section-title">Bonus Actions</div>`;
+      html += creature.bonus.map(b =>
+        `<div class="sb-entry"><span class="sb-entry-name">${b.name}.</span> ${formatEntries(b.entries || [])}</div>`
+      ).join("");
+      html += `</div>`;
+    }
+    if (creature.reaction && creature.reaction.length) {
+      html += `<div class="sb-section"><div class="sb-section-title">Reactions</div>`;
+      html += creature.reaction.map(r =>
+        `<div class="sb-entry"><span class="sb-entry-name">${r.name}.</span> ${formatEntries(r.entries || [])}</div>`
+      ).join("");
+      html += `</div>`;
+    }
+    return html;
+  }
+
   function buildConditionBlock(cond) {
     const block = document.createElement("div");
     block.className = "cond-block";
@@ -264,17 +432,79 @@
           }
         }
 
-        const total = startPageNum + condPages.length - 1;
-        condPages.forEach((p, i) => {
-          p.querySelector(".grim-page-number").textContent =
-            `— ${startPageNum + i} / ${total} —`;
-        });
-
-        document.querySelectorAll(".grim-page:not(.layout-conditions) .grim-page-number").forEach(pn => {
-          const match = pn.textContent.match(/— (\d+)/);
-          if (match) pn.textContent = `— ${match[1]} / ${total} —`;
-        });
+        updateAllPageNumbers();
       });
+    });
+  }
+
+  function createSummonsPage(isFirst) {
+    const page = document.createElement("div");
+    page.className = "grim-page layout-summons";
+
+    if (isFirst) {
+      const title = document.createElement("div");
+      title.className = "summon-title";
+      title.textContent = "Summoned Creatures";
+      page.appendChild(title);
+    }
+
+    const body = document.createElement("div");
+    body.className = "summon-body";
+    page.appendChild(body);
+
+    const pn = document.createElement("div");
+    pn.className = "grim-page-number";
+    page.appendChild(pn);
+
+    return page;
+  }
+
+  function renderSummonsPages(container, creatures, startPageNum) {
+    const summonPages = [];
+    const allBlocks = creatures.map(c => buildStatBlock(c));
+
+    let currentPage = createSummonsPage(true);
+    container.appendChild(currentPage);
+    summonPages.push(currentPage);
+
+    let body = currentPage.querySelector(".summon-body");
+    for (const block of allBlocks) {
+      body.appendChild(block);
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        for (let safety = 0; safety < 50; safety++) {
+          const page = summonPages[summonPages.length - 1];
+          const bd = page.querySelector(".summon-body");
+
+          if (bd.scrollHeight <= bd.clientHeight + 2) break;
+
+          const blocks = [...bd.querySelectorAll(".stat-block")];
+          if (blocks.length <= 1) break;
+
+          const newPage = createSummonsPage(false);
+          container.appendChild(newPage);
+          summonPages.push(newPage);
+          const newBody = newPage.querySelector(".summon-body");
+
+          while (blocks.length > 1 && bd.scrollHeight > bd.clientHeight + 2) {
+            const last = blocks.pop();
+            newBody.insertBefore(last, newBody.firstChild);
+          }
+        }
+
+        updateAllPageNumbers();
+      });
+    });
+  }
+
+  function updateAllPageNumbers() {
+    const allPages = document.querySelectorAll(".grim-page");
+    const total = allPages.length;
+    allPages.forEach((page, i) => {
+      const pn = page.querySelector(".grim-page-number");
+      if (pn) pn.textContent = `— ${i + 1} / ${total} —`;
     });
   }
 
@@ -290,6 +520,7 @@
     const layout = getLayout();
     const pages = chunkArray(spellbook, layout.perPage);
     const conditions = extractSpellbookConditions();
+    const summons = extractSpellbookSummons();
     const spellPageCount = pages.length;
   
     for (let i = 0; i < pages.length; i++) {
@@ -301,8 +532,16 @@
       renderConditionsPages(container, conditions, spellPageCount + 1);
     }
 
+    if (summons.length > 0) {
+      const startAfterConds = spellPageCount + 1 + (conditions.length > 0 ? 1 : 0);
+      renderSummonsPages(container, summons, startAfterConds);
+    }
+
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => shrinkOverflowingQuadrants());
+      requestAnimationFrame(() => {
+        shrinkOverflowingQuadrants();
+        requestAnimationFrame(() => updateAllPageNumbers());
+      });
     });
   }
 
@@ -643,9 +882,22 @@
    function cleanTags(text) {
      if (typeof text !== "string") return String(text);
      return text
+       .replace(/summonSpellLevel/g, "the spell's level")
        .replace(/\{@damage ([^}]+)\}/g, '<strong>$1</strong>')
        .replace(/\{@dice ([^}]+)\}/g, '<strong>$1</strong>')
        .replace(/\{@hit ([^}]+)\}/g, '+$1')
+       .replace(/\{@hitYourSpellAttack\s?[^}]*\}/g, '<em>your spell attack modifier</em>')
+       .replace(/\{@h\}/g, '<em>Hit: </em>')
+       .replace(/\{@atkr ([^}]+)\}/g, (_, m) => {
+         if (m.trim() === "m") return "<em>Melee Attack Roll:</em>";
+         if (m.trim() === "r") return "<em>Ranged Attack Roll:</em>";
+         return "<em>Attack Roll:</em>";
+       })
+       .replace(/\{@actSave (\w+)\}/g, (_, ab) => `<strong>${ab.charAt(0).toUpperCase() + ab.slice(1)} Saving Throw:</strong>`)
+       .replace(/\{@actSaveFail\}/g, '<em>Failure:</em>')
+       .replace(/\{@actSaveSuccess\}/g, '<em>Success:</em>')
+       .replace(/\{@actTrigger\}/g, '<em>Trigger:</em>')
+       .replace(/\{@actResponse\}/g, '<em>Response:</em>')
        .replace(/\{@spell ([^|}]+)\|?[^}]*\}/g, '<em>$1</em>')
        .replace(/\{@condition ([^|}]+)\|?[^}]*\}/g, '<em>$1</em>')
        .replace(/\{@creature ([^|}]+)\|?[^}]*\}/g, '<em>$1</em>')
