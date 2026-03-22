@@ -45,9 +45,49 @@
         <input type="checkbox" id="toggle-transparent">
         No background
       </label>
-      <button id="btn-customize" class="toolbar-btn" title="Customize appearance">⚙ Customize</button>
+      <button id="btn-reorder" class="toolbar-btn" title="Reorder spells">⇅ Reorder</button>
+      <button id="btn-settings-toggle" class="toolbar-btn" title="Layout settings">⚙ Layout</button>
+      <button id="btn-customize" class="toolbar-btn" title="Customize appearance">🎨 Theme</button>
       <button id="btn-pdf" class="toolbar-btn" title="Download as PDF">PDF</button>
       <button id="btn-print" class="toolbar-btn">Print</button>
+    </div>
+  </div>
+
+  <div id="grimoire-settings" class="no-print">
+    <div class="grim-settings-header">
+      <h3>Layout Settings</h3>
+      <span class="grim-settings-hint">Drag spells on the page to reorder them</span>
+    </div>
+
+    <div class="grim-settings-grid">
+      <div class="grim-setting">
+        <label for="grim-layout">Layout</label>
+        <select id="grim-layout"></select>
+      </div>
+
+      <div class="grim-setting">
+        <label for="grim-title-size">Title Size: <span id="grim-title-size-val">Auto</span></label>
+        <input type="range" id="grim-title-size" min="0" max="24" step="1" value="0">
+      </div>
+
+      <div class="grim-setting">
+        <label for="grim-desc-size">Text Size: <span id="grim-desc-size-val">Auto</span></label>
+        <input type="range" id="grim-desc-size" min="0" max="16" step="1" value="0">
+      </div>
+
+      <div class="grim-setting">
+        <label for="grim-page-padding">Page Padding: <span id="grim-page-padding-val">Auto</span></label>
+        <input type="range" id="grim-page-padding" min="0" max="25" step="1" value="0">
+      </div>
+
+      <div class="grim-setting">
+        <label for="grim-sep-gap">Separator Gap: <span id="grim-sep-gap-val">Auto</span></label>
+        <input type="range" id="grim-sep-gap" min="0" max="20" step="1" value="0">
+      </div>
+    </div>
+
+    <div class="grim-settings-footer">
+      <button id="grim-reset-settings" class="toolbar-btn">Reset All</button>
     </div>
   </div>
 
@@ -131,6 +171,18 @@
     </div>
   </div>
 
+  <div id="reorder-modal" class="modal-overlay hidden tooltip-container">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h2>Reorder Spells</h2>
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1rem;">Drag and drop spells below, or click arrows to move them. Changes are applied instantly.</p>
+      <div id="reorder-list" class="reorder-list"></div>
+      <div class="customize-actions" style="margin-top: 1rem;">
+        <button id="reorder-done" class="btn-primary">Done</button>
+      </div>
+    </div>
+  </div>
+
   <div id="grimoire-loading">
     <div class="loading-spinner"></div>
     <p>Preparing grimoire...</p>
@@ -146,6 +198,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="grimoire.js"></script>
+  <script type="module" src="grimoire.js"></script>
 </body>
 </html>
