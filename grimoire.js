@@ -1416,14 +1416,17 @@ function initEventListeners() {
     const savedTransform = container.style.transform;
     const savedOrigin = container.style.transformOrigin;
     const savedMargin = container.style.marginBottom;
+    const savedZoom = container.style.zoom;
     container.style.transform = "none";
     container.style.transformOrigin = "";
     container.style.marginBottom = "";
+    container.style.zoom = "1";
 
     window.onafterprint = () => {
       container.style.transform = savedTransform;
       container.style.transformOrigin = savedOrigin;
       container.style.marginBottom = savedMargin;
+      container.style.zoom = savedZoom;
       window.onafterprint = null;
     };
 
@@ -1452,9 +1455,11 @@ function initEventListeners() {
     const savedTransform = container.style.transform;
     const savedOrigin = container.style.transformOrigin;
     const savedMargin = container.style.marginBottom;
+    const savedZoom = container.style.zoom;
     container.style.transform = "none";
     container.style.transformOrigin = "";
     container.style.marginBottom = "";
+    container.style.zoom = "1";
 
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
@@ -1491,6 +1496,7 @@ function initEventListeners() {
       container.style.transform = savedTransform;
       container.style.transformOrigin = savedOrigin;
       container.style.marginBottom = savedMargin;
+      container.style.zoom = savedZoom;
       btn.disabled = false;
       btn.textContent = "PDF";
     }
@@ -1538,11 +1544,17 @@ function initEventListeners() {
   function applyZoom() {
     const container = $("#pages-container");
     const scale = zoomLevel / 100;
-    container.style.transform = `scale(${scale})`;
-    container.style.transformOrigin = "top center";
-    container.style.marginBottom = `${(scale - 1) * container.scrollHeight}px`;
+    container.style.transform = "";
+    container.style.transformOrigin = "";
+    container.style.marginBottom = "";
+    document.body.style.overflowX = "";
+
+    container.style.zoom = scale;
+    
     $("#zoom-level").textContent = `${zoomLevel}%`;
   }
+  
+  applyZoom();
 
   $("#zoom-in").addEventListener("click", () => {
     if (zoomLevel < ZOOM_MAX) { zoomLevel += ZOOM_STEP; applyZoom(); }

@@ -1886,11 +1886,12 @@ body.bg-transparent .spell-quadrant {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1.5rem;
 }
 
 #grimoire-settings.open {
-  max-height: 80px;
+  max-height: 400px;
   padding: 0.75rem 1.5rem;
 }
 
@@ -1919,6 +1920,7 @@ body.bg-transparent .spell-quadrant {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 1.25rem;
   flex: 1;
 }
