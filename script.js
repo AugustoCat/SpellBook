@@ -410,22 +410,12 @@ function renderSpellsList(spells) {
     return;
   }
 
-  const MAX_RENDER = 200;
-  const toRender = spells.slice(0, MAX_RENDER);
-
   const fragment = document.createDocumentFragment();
-  for (let i = 0; i < toRender.length; i++) {
-    const card = createSpellCard(toRender[i], i);
+  for (let i = 0; i < spells.length; i++) {
+    const card = createSpellCard(spells[i], i);
     fragment.appendChild(card);
   }
   container.appendChild(fragment);
-
-  if (spells.length > MAX_RENDER) {
-    const more = document.createElement("p");
-    more.className = "spellbook-empty";
-    more.textContent = `Showing ${MAX_RENDER} of ${spells.length} spells. Use filters to narrow down.`;
-    container.appendChild(more);
-  }
 }
 
 function createSpellCard(spell, index) {
