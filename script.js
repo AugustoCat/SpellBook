@@ -343,22 +343,9 @@ function toggleFilterSet(set, value) {
 function applyFilters() {
   const search = activeFilters.name.trim().toLowerCase();
   
-  const filtered = allSpells.filter(spell => {
+  // 1. Filter by Sources, Levels, Classes, and Schools (the "stable" criteria)
+  const baseFiltered = allSpells.filter(spell => {
     if (!activeFilters.sources.has(spell.source)) return false;
-
-    if (search) {
-      const isNum = !isNaN(search) && search !== "";
-      const isGlobalMatch = isNum && spell._globalIndex === parseInt(search);
-      const isLevelIndexMatch = isNum && spell._levelIndex === parseInt(search);
-      const isLevelPatternMatch = search.includes("-") && (
-        `${spell.level === 0 ? 'c' : spell.level}-${spell._levelIndex}` === search ||
-        `${spell.level}-${spell._levelIndex}` === search ||
-        `l${spell.level}-${spell._levelIndex}` === search
-      );
-      const isNameMatch = spell.name.toLowerCase().includes(search);
-
-      if (!isGlobalMatch && !isLevelIndexMatch && !isLevelPatternMatch && !isNameMatch) return false;
-    }
 
     if (activeFilters.classes.size > 0) {
       let hasClass = false;
@@ -374,10 +361,24 @@ function applyFilters() {
     return true;
   });
 
-  assignIndices(filtered);
+  assignIndices(baseFiltered);
 
-  dom.spellsCount.textContent = filtered.length;
-  renderSpellsList(filtered);
+  const finalFiltered = search ? baseFiltered.filter(spell => {
+    const isNum = !isNaN(search) && search !== "";
+    const isGlobalMatch = isNum && spell._globalIndex === parseInt(search);
+    const isLevelIndexMatch = isNum && spell._levelIndex === parseInt(search);
+    const isLevelPatternMatch = search.includes("-") && (
+      `${spell.level === 0 ? 'c' : spell.level}-${spell._levelIndex}` === search ||
+      `${spell.level}-${spell._levelIndex}` === search ||
+      `l${spell.level}-${spell._levelIndex}` === search
+    );
+    const isNameMatch = spell.name.toLowerCase().includes(search);
+
+    return isGlobalMatch || isLevelIndexMatch || isLevelPatternMatch || isNameMatch;
+  }) : baseFiltered;
+
+  dom.spellsCount.textContent = finalFiltered.length;
+  renderSpellsList(finalFiltered);
 }
 
 function clearFilters() {
