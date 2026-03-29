@@ -1,5 +1,7 @@
 import { DATA_BASE } from './constants.js';
 
+import { assignIndices } from './utils.js';
+
 export async function loadSpellData() {
   const [indexRes, booksRes, adventuresRes, sourcesRes] = await Promise.all([
     fetch(`${DATA_BASE}/spells/index.json`).then(r => r.json()),
@@ -33,6 +35,7 @@ export async function loadSpellData() {
   }
 
   allSpells.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  assignIndices(allSpells);
 
   return { allSpells, spellSources: sourcesRes, booksMap };
 }

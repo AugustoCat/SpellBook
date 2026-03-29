@@ -341,11 +341,11 @@ function toggleFilterSet(set, value) {
 }
 
 function applyFilters() {
-  const sourceFiltered = allSpells.filter(s => activeFilters.sources.has(s.source));
-  assignIndices(sourceFiltered);
+  const search = activeFilters.name.trim().toLowerCase();
+  
+  const filtered = allSpells.filter(spell => {
+    if (!activeFilters.sources.has(spell.source)) return false;
 
-  const filtered = sourceFiltered.filter(spell => {
-    const search = activeFilters.name.trim().toLowerCase();
     if (search) {
       const isNum = !isNaN(search) && search !== "";
       const isGlobalMatch = isNum && spell._globalIndex === parseInt(search);
@@ -373,6 +373,8 @@ function applyFilters() {
 
     return true;
   });
+
+  assignIndices(filtered);
 
   dom.spellsCount.textContent = filtered.length;
   renderSpellsList(filtered);
