@@ -1,6 +1,6 @@
 import { SCHOOL_MAP, CLASS_LIST, LEVEL_LABELS } from './js/constants.js';
 import { sourceLabel, formatRange, formatComponents, formatDuration, formatEntries, cleanTags, formatTable } from './js/formatters.js';
-import { debounce, rgbToHex, lightenColor, downloadJSON, $, $$ } from './js/utils.js';
+import { debounce, rgbToHex, lightenColor, downloadJSON, assignIndices, $, $$ } from './js/utils.js';
 import { loadSpellData } from './js/dataLoader.js';
 import { setTheme, applyCustomVars, loadSavedCustomVars, readCustomizeInputs, populateCustomizeInputs, exportThemeData } from './js/themeManager.js';
 import {
@@ -52,6 +52,7 @@ async function init() {
     booksMap = data.booksMap;
 
     initUI();
+    loadSavedSources();
     spellbook = loadSpellbookFromStorage(allSpells);
     renderSpellbook();
     applyFilters();
@@ -104,8 +105,22 @@ function initSourceFilter() {
   });
 
   activeFilters.sources = new Set(allSourceCodes.filter(s => s !== "PHB"));
-  renderSourcesList();
   updateSourceButtonLabel();
+}
+
+function loadSavedSources() {
+  const saved = localStorage.getItem("sb-sources");
+  if (saved) {
+    try {
+      const arr = JSON.parse(saved);
+      activeFilters.sources = new Set(arr.filter(s => allSourceCodes.includes(s)));
+      updateSourceButtonLabel();
+    } catch (_) {}
+  }
+}
+
+function saveSources() {
+  localStorage.setItem("sb-sources", JSON.stringify([...activeFilters.sources]));
 }
 
 function renderSourcesList() {
@@ -190,6 +205,7 @@ function initEventListeners() {
     }
     updateSourceButtonLabel();
     dom.sourcesModal.classList.add("hidden");
+    saveSources();
     applyFilters();
   });
 
@@ -208,6 +224,7 @@ function initEventListeners() {
       }
 
       updateSourceButtonLabel();
+      saveSources();
       applyFilters();
     });
   }
@@ -324,8 +341,24 @@ function toggleFilterSet(set, value) {
 }
 
 function applyFilters() {
-  const filtered = allSpells.filter(spell => {
-    if (activeFilters.name && !spell.name.toLowerCase().includes(activeFilters.name)) return false;
+  const sourceFiltered = allSpells.filter(s => activeFilters.sources.has(s.source));
+  assignIndices(sourceFiltered);
+
+  const filtered = sourceFiltered.filter(spell => {
+    const search = activeFilters.name.trim().toLowerCase();
+    if (search) {
+      const isNum = !isNaN(search) && search !== "";
+      const isGlobalMatch = isNum && spell._globalIndex === parseInt(search);
+      const isLevelIndexMatch = isNum && spell._levelIndex === parseInt(search);
+      const isLevelPatternMatch = search.includes("-") && (
+        `${spell.level === 0 ? 'c' : spell.level}-${spell._levelIndex}` === search ||
+        `${spell.level}-${spell._levelIndex}` === search ||
+        `l${spell.level}-${spell._levelIndex}` === search
+      );
+      const isNameMatch = spell.name.toLowerCase().includes(search);
+
+      if (!isGlobalMatch && !isLevelIndexMatch && !isLevelPatternMatch && !isNameMatch) return false;
+    }
 
     if (activeFilters.classes.size > 0) {
       let hasClass = false;
@@ -337,7 +370,6 @@ function applyFilters() {
 
     if (activeFilters.levels.size > 0 && !activeFilters.levels.has(spell.level)) return false;
     if (activeFilters.schools.size > 0 && !activeFilters.schools.has(spell.school)) return false;
-    if (activeFilters.sources.size < allSourceCodes.length && !activeFilters.sources.has(spell.source)) return false;
 
     return true;
   });
@@ -358,6 +390,7 @@ function clearFilters() {
 
   for (const chip of $$(".chip.active")) chip.classList.remove("active");
   updateSourceButtonLabel();
+  saveSources();
   applyFilters();
 }
 
@@ -419,7 +452,10 @@ function createSpellCard(spell, index) {
   }
 
   card.innerHTML = `
-    <span class="spell-name">${spell.name}</span>
+    <div class="spell-name-row">
+      <span class="spell-name">${spell.name}</span>
+      <span class="spell-index">#${spell._globalIndex || '-'} <small>(${spell.level === 0 ? 'C' : spell.level}-${spell._levelIndex || '-'})</small></span>
+    </div>
     <div class="spell-meta">
       <span class="spell-school-dot" style="background:${schoolColor}" title="${school.name}"></span>
       <span>${school.name}</span>

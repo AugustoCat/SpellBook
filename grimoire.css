@@ -321,13 +321,33 @@ body {
   padding-bottom: 1.5mm;
 }
 
+.sq-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1mm;
+}
+
 .sq-name {
   font-family: var(--font-title);
   font-size: 13pt;
   font-weight: 700;
   line-height: 1.2;
   color: var(--text-color);
-  margin-bottom: 1mm;
+}
+
+.sq-index {
+  font-size: 8pt;
+  color: var(--accent-color);
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.sq-index small {
+  font-size: 7pt;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 0.5mm;
 }
 
 .sq-tags {

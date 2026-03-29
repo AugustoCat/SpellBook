@@ -8,7 +8,7 @@ import {
   sourceLabel, translateUnit, formatRange, formatComponents,
   formatDurationShort, formatEntries, formatTable, cleanTags,
 } from './js/formatters.js';
-import { chunkArray, rgbToHex, lightenColor, $, $$ } from './js/utils.js';
+import { chunkArray, rgbToHex, lightenColor, assignIndices, $, $$ } from './js/utils.js';
 import { loadSpellData, loadGrimoireExtras } from './js/dataLoader.js';
 import { applyCustomVars, loadSavedCustomVars, readCustomizeInputs, populateCustomizeInputs } from './js/themeManager.js';
 
@@ -58,6 +58,19 @@ async function init() {
   booksMap = spellData.booksMap;
   allConditions = extraData.allConditions;
   allSummons = extraData.allSummons;
+
+  const savedSources = localStorage.getItem("sb-sources");
+  if (savedSources) {
+    try {
+      const sourceList = JSON.parse(savedSources);
+      const sourceFiltered = allSpells.filter(s => sourceList.includes(s.source));
+      assignIndices(sourceFiltered);
+    } catch (_) {
+      assignIndices(allSpells);
+    }
+  } else {
+    assignIndices(allSpells);
+  }
 
   // Load spellbook from localStorage
   const keys = JSON.parse(localStorage.getItem("sb-current") || "[]");
@@ -1060,7 +1073,10 @@ function createQuadrant(spell) {
   q.innerHTML = `
     <div class="sq-drag-handle" title="Drag to reorder">⋮⋮</div>
     <div class="sq-header">
-      <div class="sq-name">${spell.name}</div>
+      <div class="sq-name-row">
+        <div class="sq-name">${spell.name}</div>
+        <div class="sq-index">#${spell._globalIndex || '-'} <small>(${spell.level === 0 ? 'C' : spell.level}-${spell._levelIndex || '-'})</small></div>
+      </div>
       <div class="sq-subtitle">${levelSchool}</div>
       ${tags.length ? `<div class="sq-tags">${tags.join("")}</div>` : ""}
     </div>

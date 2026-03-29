@@ -52,3 +52,15 @@ export function chunkArray(arr, size) {
 
 export const $ = (sel) => document.querySelector(sel);
 export const $$ = (sel) => document.querySelectorAll(sel);
+
+export function assignIndices(spells) {
+  const levelCounters = {};
+  spells.sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  spells.forEach((spell, i) => {
+    spell._globalIndex = i + 1;
+    const lvl = spell.level;
+    if (!levelCounters[lvl]) levelCounters[lvl] = 0;
+    levelCounters[lvl]++;
+    spell._levelIndex = levelCounters[lvl];
+  });
+}
